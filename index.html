@@ -98,10 +98,15 @@
             cursor: pointer;
             font-family: 'Rye', serif;
             border: 2px solid #65330c;
-            transition: background-color 0.3s;
+            transition: background-color 0.3s, opacity 0.3s;
         }
         .btn:hover {
             background-color: #a0522d;
+        }
+        .btn:disabled {
+            background-color: #9f8b79;
+            opacity: 0.6;
+            cursor: not-allowed;
         }
         .btn-remove {
             background-color: #a9a9a9;
@@ -155,7 +160,7 @@
                 </tbody>
             </table>
             <div class="text-center mt-4">
-                <button id="addRowBtn" class="btn">Add Entry</button>
+                <button id="addRowBtn" class="btn" disabled>Connecting...</button>
             </div>
         </div>
 
@@ -169,6 +174,9 @@
         <div class="text-xs sm:text-sm mt-8 border-t-2 border-dashed border-stone-400 pt-4">
             <p>Report any sightings to the Dispatch Office. All tips are appreciated. A bonus will be paid for successful recovery of goods.</p>
         </div>
+        
+        <!-- Status Indicator -->
+        <div id="status-indicator" class="text-xs text-stone-500 mt-4">Status: Initializing...</div>
 
     </div>
 
@@ -195,15 +203,14 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, collection, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- Use provided Firebase config and App ID ---
-       const firebaseConfig = {
-  apiKey: "AIzaSyCp_AyRkhGFjNJRXxgBdaggqx5gCejy45k",
-  authDomain: "wanted-poster-fe781.firebaseapp.com",
-  projectId: "wanted-poster-fe781",
-  storageBucket: "wanted-poster-fe781.firebasestorage.app",
-  messagingSenderId: "667245385682",
-  appId: 'my-global-wanted-poster'
-};
+        // --- IMPORTANT: For your live site, replace this with your actual Firebase config ---
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            // apiKey: "YOUR_API_KEY",
+            // authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            // projectId: "YOUR_PROJECT_ID",
+            // etc.
+        };
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'my-wanted-poster-app'; // Use a unique ID for your live app
 
         // --- Initialize Firebase ---
         const app = initializeApp(firebaseConfig);
@@ -215,13 +222,17 @@
 
         const tableBody = document.getElementById('table-body');
         const addRowBtn = document.getElementById('addRowBtn');
+        const statusIndicator = document.getElementById('status-indicator');
 
         // --- Authentication and Data Loading ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                console.log("User is signed in with UID:", user.uid);
+                statusIndicator.textContent = "Status: Authenticated. Loading data...";
                 
-                // One-time check to see if the collection is empty
+                // Set up the real-time listener first
+                setupRealtimeListener();
+
+                // Then check if the collection is empty to add an initial doc
                 const initialSnapshot = await getDocs(movesCollectionRef);
                 if (initialSnapshot.empty) {
                     console.log("Collection is empty, adding initial document.");
@@ -233,17 +244,16 @@
                         createdAt: serverTimestamp()
                     });
                 }
-                
-                // Set up the real-time listener after the check
-                setupRealtimeListener();
-
             } else {
-                console.log("User is not signed in.");
+                statusIndicator.textContent = "Status: Not Authenticated.";
+                addRowBtn.disabled = true;
+                addRowBtn.textContent = 'Connection Failed';
             }
         });
         
         async function authenticate() {
             try {
+                statusIndicator.textContent = "Status: Authenticating...";
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
@@ -251,6 +261,7 @@
                 }
             } catch (error) {
                 console.error("Authentication failed:", error);
+                statusIndicator.textContent = `Authentication Error: ${error.message}`;
             }
         }
         authenticate();
@@ -259,13 +270,21 @@
         // --- Listen for Real-time Table Data ---
         function setupRealtimeListener() {
             onSnapshot(movesCollectionRef, (snapshot) => {
+                statusIndicator.textContent = "Status: Connected and live.";
+                addRowBtn.disabled = false;
+                addRowBtn.textContent = 'Add Entry';
+
                 const moves = [];
                 snapshot.forEach(doc => {
                     moves.push({ id: doc.id, ...doc.data() });
                 });
-                // Sort data by the 'createdAt' timestamp to maintain order
                 moves.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
                 renderTable(moves);
+            }, (error) => {
+                console.error("Firestore listener error:", error);
+                statusIndicator.textContent = `Error: ${error.message}. Check Firestore rules.`;
+                addRowBtn.disabled = true;
+                addRowBtn.textContent = 'Error';
             });
         }
 
@@ -293,10 +312,11 @@
                     dates: '',
                     size: '',
                     notes: '',
-                    createdAt: serverTimestamp() // Use server timestamp to maintain order
+                    createdAt: serverTimestamp()
                 });
             } catch (error) {
                 console.error("Error adding new move:", error);
+                statusIndicator.textContent = `Could not add entry: ${error.message}`;
             }
         });
 
@@ -311,7 +331,10 @@
                 if (docId) {
                     const docRef = doc(db, `artifacts/${appId}/public/data/moves`, docId);
                     updateDoc(docRef, { [field]: newText })
-                        .catch(error => console.error("Error updating document:", error));
+                        .catch(error => {
+                            console.error("Error updating document:", error);
+                            statusIndicator.textContent = `Could not save change: ${error.message}`;
+                        });
                 }
             }
         });
@@ -327,7 +350,10 @@
                 if (docId) {
                     const docRef = doc(db, `artifacts/${appId}/public/data/moves`, docId);
                     deleteDoc(docRef)
-                        .catch(error => console.error("Error deleting document:", error));
+                        .catch(error => {
+                             console.error("Error deleting document:", error);
+                             statusIndicator.textContent = `Could not delete entry: ${error.message}`;
+                        });
                 }
             }
         });
