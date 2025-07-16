@@ -23,7 +23,6 @@
         .poster {
             background-color: #fdf5e6; /* Lighter paper color */
             border: 10px solid #8B4513; /* Saddle brown border */
-            /* FIX: SVG for border-image is now URL-encoded for maximum compatibility. */
             border-image: url('data:image/svg+xml,%3csvg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" fill="%238B4513"%3e%3cpolygon points="0,0 100,0 100,10 90,10 90,90 10,90 10,10 0,10"/%3e%3c/svg%3e') 20 / 15px / 0px stretch;
             box-shadow: 0 0 20px rgba(0,0,0,0.5), inset 0 0 30px rgba(0,0,0,0.2);
             position: relative;
@@ -35,7 +34,6 @@
             position: absolute;
             left: -15px; right: -15px; top: -15px; bottom: -15px;
             border: 15px solid transparent;
-            /* FIX: SVG for burnt-edge effect is now URL-encoded for maximum compatibility. */
             border-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50'%3e%3cdefs%3e%3cfilter id='f'%3e%3cfeTurbulence type='fractalNoise' baseFrequency='0.02 0.05' numOctaves='3' result='turb'/%3e%3cfeDisplacementMap in='SourceGraphic' in2='turb' scale='10' xChannelSelector='R' yChannelSelector='G'/%3e%3c/filter%3e%3c/defs%3e%3crect width='50' height='50' filter='url(%23f)' fill='%238B4513'/%3e%3c/svg%3e") 15 round;
             filter: brightness(0.6);
             pointer-events: none;
@@ -59,7 +57,7 @@
             border-bottom: 2px solid #8B4513;
         }
         
-        /* --- NEW ANIMATED ELEMENTS --- */
+        /* --- ANIMATED ELEMENTS --- */
 
         /* Swinging Box */
         .swinging-box {
@@ -153,13 +151,7 @@
                     </tr>
                 </thead>
                 <tbody id="table-body">
-                    <tr>
-                        <td contenteditable="true"></td>
-                        <td contenteditable="true"></td>
-                        <td contenteditable="true"></td>
-                        <td contenteditable="true"></td>
-                        <td class="p-2 text-center"><button class="btn btn-remove" onclick="removeRow(this)">X</button></td>
-                    </tr>
+                    <!-- Rows will be dynamically inserted here by Firebase -->
                 </tbody>
             </table>
             <div class="text-center mt-4">
@@ -197,39 +189,138 @@
         </svg>
     </div>
 
-    <script>
-        // --- JavaScript for Table Functionality ---
+    <script type="module">
+        // --- Firebase Integration ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, collection, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const addRowBtn = document.getElementById('addRowBtn');
+        // --- Use provided Firebase config and App ID ---
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        // --- Initialize Firebase ---
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // --- Collection Reference ---
+        // Data is stored publicly for this collaborative app.
+        const movesCollectionRef = collection(db, `artifacts/${appId}/public/data/moves`);
+
         const tableBody = document.getElementById('table-body');
+        const addRowBtn = document.getElementById('addRowBtn');
 
-        // Function to add a new row to the table
-        function addRow() {
-            const newRow = document.createElement('tr');
-            newRow.innerHTML = `
-                <td contenteditable="true"></td>
-                <td contenteditable="true"></td>
-                <td contenteditable="true"></td>
-                <td contenteditable="true"></td>
-                <td class="p-2 text-center"><button class="btn btn-remove" onclick="removeRow(this)">X</button></td>
-            `;
-            tableBody.appendChild(newRow);
-        }
-
-        // Function to remove a row from the table
-        function removeRow(button) {
-            // Prevent removing the last row
-            if (tableBody.rows.length > 1) {
-                const row = button.parentNode.parentNode;
-                tableBody.removeChild(row);
+        // --- Authentication and Data Loading ---
+        onAuthStateChanged(auth, user => {
+            if (user) {
+                console.log("User is signed in with UID:", user.uid);
+                loadTableData();
             } else {
-                // You could add a custom message here instead of an alert
-                console.log("Cannot remove the last row.");
+                console.log("User is not signed in.");
+            }
+        });
+        
+        async function authenticate() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Authentication failed:", error);
             }
         }
+        authenticate();
 
-        // Event listener for the "Add Entry" button
-        addRowBtn.addEventListener('click', addRow);
+
+        // --- Load and Listen for Real-time Table Data ---
+        function loadTableData() {
+            onSnapshot(movesCollectionRef, (snapshot) => {
+                const moves = [];
+                snapshot.forEach(doc => {
+                    moves.push({ id: doc.id, ...doc.data() });
+                });
+                // Sort data by the 'createdAt' timestamp to maintain order
+                moves.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+                renderTable(moves);
+            });
+        }
+
+        // --- Render the HTML table from data ---
+        function renderTable(moves) {
+            tableBody.innerHTML = ''; // Clear existing table
+            if (moves.length === 0) {
+                 // If no data, add one empty row to start
+                 addDoc(movesCollectionRef, {
+                    location: '',
+                    dates: '',
+                    size: '',
+                    notes: '',
+                    createdAt: serverTimestamp()
+                });
+                return;
+            }
+            moves.forEach(move => {
+                const row = tableBody.insertRow();
+                row.setAttribute('data-id', move.id);
+                row.innerHTML = `
+                    <td contenteditable="true" data-field="location">${move.location || ''}</td>
+                    <td contenteditable="true" data-field="dates">${move.dates || ''}</td>
+                    <td contenteditable="true" data-field="size">${move.size || ''}</td>
+                    <td contenteditable="true" data-field="notes">${move.notes || ''}</td>
+                    <td class="p-2 text-center"><button class="btn btn-remove" data-id="${move.id}">X</button></td>
+                `;
+            });
+        }
+
+        // --- Handle Adding a New Row ---
+        addRowBtn.addEventListener('click', async () => {
+            try {
+                await addDoc(movesCollectionRef, {
+                    location: '',
+                    dates: '',
+                    size: '',
+                    notes: '',
+                    createdAt: serverTimestamp() // Use server timestamp to maintain order
+                });
+            } catch (error) {
+                console.error("Error adding new move:", error);
+            }
+        });
+
+        // --- Handle Cell Edits and Row Deletion ---
+        tableBody.addEventListener('focusout', (event) => {
+            if (event.target.hasAttribute('contenteditable')) {
+                const row = event.target.closest('tr');
+                const docId = row.dataset.id;
+                const field = event.target.dataset.field;
+                const newText = event.target.innerText;
+
+                const docRef = doc(db, `artifacts/${appId}/public/data/moves`, docId);
+                updateDoc(docRef, { [field]: newText })
+                    .catch(error => console.error("Error updating document:", error));
+            }
+        });
+
+        tableBody.addEventListener('click', async (event) => {
+            if (event.target.classList.contains('btn-remove')) {
+                const docId = event.target.dataset.id;
+                // Prevent removing the last row to avoid a blank state
+                const docs = await getDocs(movesCollectionRef);
+                if (docs.size <= 1) {
+                    console.log("Cannot remove the last row.");
+                    return;
+                }
+                if (docId) {
+                    const docRef = doc(db, `artifacts/${appId}/public/data/moves`, docId);
+                    deleteDoc(docRef)
+                        .catch(error => console.error("Error deleting document:", error));
+                }
+            }
+        });
+
     </script>
 
 </body>
