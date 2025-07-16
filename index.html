@@ -205,17 +205,32 @@
         const auth = getAuth(app);
 
         // --- Collection Reference ---
-        // Data is stored publicly for this collaborative app.
         const movesCollectionRef = collection(db, `artifacts/${appId}/public/data/moves`);
 
         const tableBody = document.getElementById('table-body');
         const addRowBtn = document.getElementById('addRowBtn');
 
         // --- Authentication and Data Loading ---
-        onAuthStateChanged(auth, user => {
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
                 console.log("User is signed in with UID:", user.uid);
-                loadTableData();
+                
+                // One-time check to see if the collection is empty
+                const initialSnapshot = await getDocs(movesCollectionRef);
+                if (initialSnapshot.empty) {
+                    console.log("Collection is empty, adding initial document.");
+                    await addDoc(movesCollectionRef, {
+                        location: 'Example: Downtown',
+                        dates: 'Example: July 20-22',
+                        size: 'Example: 3-BR House',
+                        notes: 'Example: Fragile items',
+                        createdAt: serverTimestamp()
+                    });
+                }
+                
+                // Set up the real-time listener after the check
+                setupRealtimeListener();
+
             } else {
                 console.log("User is not signed in.");
             }
@@ -235,8 +250,8 @@
         authenticate();
 
 
-        // --- Load and Listen for Real-time Table Data ---
-        function loadTableData() {
+        // --- Listen for Real-time Table Data ---
+        function setupRealtimeListener() {
             onSnapshot(movesCollectionRef, (snapshot) => {
                 const moves = [];
                 snapshot.forEach(doc => {
@@ -251,17 +266,6 @@
         // --- Render the HTML table from data ---
         function renderTable(moves) {
             tableBody.innerHTML = ''; // Clear existing table
-            if (moves.length === 0) {
-                 // If no data, add one empty row to start
-                 addDoc(movesCollectionRef, {
-                    location: '',
-                    dates: '',
-                    size: '',
-                    notes: '',
-                    createdAt: serverTimestamp()
-                });
-                return;
-            }
             moves.forEach(move => {
                 const row = tableBody.insertRow();
                 row.setAttribute('data-id', move.id);
@@ -298,16 +302,17 @@
                 const field = event.target.dataset.field;
                 const newText = event.target.innerText;
 
-                const docRef = doc(db, `artifacts/${appId}/public/data/moves`, docId);
-                updateDoc(docRef, { [field]: newText })
-                    .catch(error => console.error("Error updating document:", error));
+                if (docId) {
+                    const docRef = doc(db, `artifacts/${appId}/public/data/moves`, docId);
+                    updateDoc(docRef, { [field]: newText })
+                        .catch(error => console.error("Error updating document:", error));
+                }
             }
         });
 
         tableBody.addEventListener('click', async (event) => {
             if (event.target.classList.contains('btn-remove')) {
                 const docId = event.target.dataset.id;
-                // Prevent removing the last row to avoid a blank state
                 const docs = await getDocs(movesCollectionRef);
                 if (docs.size <= 1) {
                     console.log("Cannot remove the last row.");
