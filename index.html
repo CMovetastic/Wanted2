@@ -196,8 +196,14 @@
         import { getFirestore, doc, collection, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Use provided Firebase config and App ID ---
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+       const firebaseConfig = {
+  apiKey: "AIzaSyCp_AyRkhGFjNJRXxgBdaggqx5gCejy45k",
+  authDomain: "wanted-poster-fe781.firebaseapp.com",
+  projectId: "wanted-poster-fe781",
+  storageBucket: "wanted-poster-fe781.firebasestorage.app",
+  messagingSenderId: "667245385682",
+  appId: 'my-global-wanted-poster'
+};
 
         // --- Initialize Firebase ---
         const app = initializeApp(firebaseConfig);
