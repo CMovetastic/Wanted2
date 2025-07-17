@@ -199,9 +199,9 @@
 
     <script type="module">
         // --- Firebase Integration ---
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, collection, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
 
         // --- Firebase Configuration ---
         // This logic correctly uses the environment's config when available, 
@@ -212,14 +212,15 @@
                 // ===================================================================================
                 // === FOR YOUR LIVE SITE: PASTE YOUR FIREBASE CONFIGURATION OBJECT HERE ============
                 // ===================================================================================
-            const firebaseConfig = {
-  apiKey: "AIzaSyCp_AyRkhGFjNJRXxgBdaggqx5gCejy45k",
-  authDomain: "wanted-poster-fe781.firebaseapp.com",
-  projectId: "wanted-poster-fe781",
-  storageBucket: "wanted-poster-fe781.firebasestorage.app",
-  messagingSenderId: "667245385682",
-  appId: "1:667245385682:web:628d40fbfc0d2f90995a0b"
-};
+  const firebaseConfig = {
+    apiKey: "AIzaSyCp_AyRkhGFjNJRXxgBdaggqx5gCejy45k",
+    authDomain: "wanted-poster-fe781.firebaseapp.com",
+    projectId: "wanted-poster-fe781",
+    storageBucket: "wanted-poster-fe781.firebasestorage.app",
+    messagingSenderId: "667245385682",
+    appId: "1:667245385682:web:628d40fbfc0d2f90995a0b"
+  };
+
                 // ===================================================================================
             };
 
@@ -227,9 +228,8 @@
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'my-global-wanted-poster'; 
 
         // --- Initialize Firebase ---
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
+         const app = initializeApp(firebaseConfig);
+</script>
 
         // --- Collection Reference ---
         const movesCollectionRef = collection(db, `artifacts/${appId}/public/data/moves`);
