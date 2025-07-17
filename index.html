@@ -199,20 +199,20 @@
 
     <script type="module">
         // --- Firebase Integration ---
-     import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, collection, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Firebase Configuration ---
         // This logic correctly uses the environment's config when available, 
         // and provides a placeholder for your live site.
-       const app = initializeApp(firebaseConfig);
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
             ? JSON.parse(__firebase_config) 
             : {
                 // ===================================================================================
                 // === FOR YOUR LIVE SITE: PASTE YOUR FIREBASE CONFIGURATION OBJECT HERE ============
                 // ===================================================================================
-const firebaseConfig = {
+            const firebaseConfig = {
   apiKey: "AIzaSyCp_AyRkhGFjNJRXxgBdaggqx5gCejy45k",
   authDomain: "wanted-poster-fe781.firebaseapp.com",
   projectId: "wanted-poster-fe781",
@@ -220,7 +220,6 @@ const firebaseConfig = {
   messagingSenderId: "667245385682",
   appId: "1:667245385682:web:628d40fbfc0d2f90995a0b"
 };
-
                 // ===================================================================================
             };
 
@@ -281,7 +280,8 @@ const firebaseConfig = {
                 snapshot.forEach(doc => {
                     moves.push({ id: doc.id, ...doc.data() });
                 });
-                moves.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+                // FIX: Replaced modern optional chaining (?.) with a more compatible syntax
+                moves.sort((a, b) => ((a.createdAt && a.createdAt.seconds) || 0) - ((b.createdAt && b.createdAt.seconds) || 0));
                 renderTable(moves);
             }, (error) => {
                 console.error("Firestore listener error:", error);
