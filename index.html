@@ -200,17 +200,26 @@
     <script type="module">
         // --- Firebase Integration ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, collection, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- IMPORTANT: For your live site, replace this with your actual Firebase config ---
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            // apiKey: "YOUR_API_KEY",
-            // authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-            // projectId: "YOUR_PROJECT_ID",
-            // etc.
+        // ===================================================================================
+        // === STEP 1: PASTE YOUR FIREBASE CONFIGURATION OBJECT HERE =========================
+        // ===================================================================================
+        // Get this from your Firebase project settings
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
         };
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'my-wanted-poster-app'; // Use a unique ID for your live app
+        // ===================================================================================
+        // ===================================================================================
+
+        // Use a unique ID for your app's data path. You can leave this as is.
+        const appId = 'my-global-wanted-poster'; 
 
         // --- Initialize Firebase ---
         const app = initializeApp(firebaseConfig);
@@ -225,14 +234,14 @@
         const statusIndicator = document.getElementById('status-indicator');
 
         // --- Authentication and Data Loading ---
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
+        async function startApp() {
+            try {
+                statusIndicator.textContent = "Status: Authenticating...";
+                await signInAnonymously(auth);
                 statusIndicator.textContent = "Status: Authenticated. Loading data...";
                 
-                // Set up the real-time listener first
                 setupRealtimeListener();
 
-                // Then check if the collection is empty to add an initial doc
                 const initialSnapshot = await getDocs(movesCollectionRef);
                 if (initialSnapshot.empty) {
                     console.log("Collection is empty, adding initial document.");
@@ -244,27 +253,15 @@
                         createdAt: serverTimestamp()
                     });
                 }
-            } else {
-                statusIndicator.textContent = "Status: Not Authenticated.";
+
+            } catch (error) {
+                console.error("Initialization failed:", error);
+                statusIndicator.textContent = `Error: ${error.message}. Check config and auth domains.`;
                 addRowBtn.disabled = true;
                 addRowBtn.textContent = 'Connection Failed';
             }
-        });
-        
-        async function authenticate() {
-            try {
-                statusIndicator.textContent = "Status: Authenticating...";
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (error) {
-                console.error("Authentication failed:", error);
-                statusIndicator.textContent = `Authentication Error: ${error.message}`;
-            }
         }
-        authenticate();
+        startApp();
 
 
         // --- Listen for Real-time Table Data ---
