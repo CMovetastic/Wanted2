@@ -203,23 +203,26 @@
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, collection, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // ===================================================================================
-        // === STEP 1: PASTE YOUR FIREBASE CONFIGURATION OBJECT HERE =========================
-        // ===================================================================================
-        // Get this from your Firebase project settings
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT_ID.appspot.com",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
-        };
-        // ===================================================================================
-        // ===================================================================================
+        // --- Firebase Configuration ---
+        // This logic correctly uses the environment's config when available, 
+        // and provides a placeholder for your live site.
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config) 
+            : {
+                // ===================================================================================
+                // === FOR YOUR LIVE SITE: PASTE YOUR FIREBASE CONFIGURATION OBJECT HERE ============
+                // ===================================================================================
+                apiKey: "YOUR_API_KEY",
+                authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+                projectId: "YOUR_PROJECT_ID",
+                storageBucket: "YOUR_PROJECT_ID.appspot.com",
+                messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+                appId: "YOUR_APP_ID"
+                // ===================================================================================
+            };
 
-        // Use a unique ID for your app's data path. You can leave this as is.
-        const appId = 'my-global-wanted-poster'; 
+        // Use a unique ID for your app's data path.
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'my-global-wanted-poster'; 
 
         // --- Initialize Firebase ---
         const app = initializeApp(firebaseConfig);
