@@ -198,48 +198,24 @@
     </div>
 
     <script type="module">
-        // ===================================================================================
-        // === STEP 2: PASTE THESE SECURITY RULES INTO YOUR FIREBASE PROJECT =================
-        // ===================================================================================
-        // 1. Go to your Firebase project -> Firestore Database -> Rules tab.
-        // 2. Delete all existing text.
-        // 3. Paste the following rules and click "Publish".
-        /*
-            rules_version = '2';
-            service cloud.firestore {
-              match /databases/{database}/documents {
-                // This rule allows any authenticated user to read and write to the 'moves' collection.
-                // This is required for a public, collaborative app like this one.
-                match /moves/{moveId} {
-                  allow read, write: if request.auth != null;
-                }
-              }
-            }
-        */
-        // ===================================================================================
-
         // --- Firebase Integration ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, collection, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Firebase Configuration ---
-        // This logic correctly uses the environment's config when available, 
-        // and provides a placeholder for your live site.
-        const firebaseConfig = typeof __firebase_config !== 'undefined' 
-            ? JSON.parse(__firebase_config) 
-            : {
-                // ===================================================================================
-                // === STEP 1: PASTE YOUR FIREBASE CONFIGURATION OBJECT HERE =========================
-                // ===================================================================================
-          apiKey: "AIzaSyCp_AyRkhGFjNJRXxgBdaggqx5gCejy45k",
+        const firebaseConfig = {
+            // ===================================================================================
+            // === STEP 1: PASTE YOUR FIREBASE CONFIGURATION OBJECT HERE =========================
+            // ===================================================================================
+           apiKey: "AIzaSyCp_AyRkhGFjNJRXxgBdaggqx5gCejy45k",
     authDomain: "wanted-poster-fe781.firebaseapp.com",
     projectId: "wanted-poster-fe781",
     storageBucket: "wanted-poster-fe781.firebasestorage.app",
     messagingSenderId: "667245385682",
     appId: "1:667245385682:web:628d40fbfc0d2f90995a0b"
-                // ===================================================================================
-            };
+            // ===================================================================================
+        };
 
         // --- Initialize Firebase ---
         const app = initializeApp(firebaseConfig);
@@ -247,7 +223,7 @@
         const auth = getAuth(app);
 
         // --- Collection Reference ---
-        // FIX: Simplified the database path to make security rules easier and avoid permissions errors.
+        // This is the simplified path that must match your security rules.
         const movesCollectionRef = collection(db, 'moves');
 
         const tableBody = document.getElementById('table-body');
