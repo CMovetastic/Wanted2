@@ -198,33 +198,57 @@
     </div>
 
     <script type="module">
-        // --- Firebase Integration ---
-     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
+        // ===================================================================================
+        // === STEP 2: PASTE THESE SECURITY RULES INTO YOUR FIREBASE PROJECT =================
+        // ===================================================================================
+        // 1. Go to your Firebase project -> Firestore Database -> Rules tab.
+        // 2. Delete all existing text.
+        // 3. Paste the following rules and click "Publish".
+        /*
+            rules_version = '2';
+            service cloud.firestore {
+              match /databases/{database}/documents {
+                // This rule allows any authenticated user to read and write to the 'moves' collection.
+                // This is required for a public, collaborative app like this one.
+                match /moves/{moveId} {
+                  allow read, write: if request.auth != null;
+                }
+              }
+            }
+        */
+        // ===================================================================================
 
-    
+        // --- Firebase Integration ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, collection, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Firebase Configuration ---
+        // This logic correctly uses the environment's config when available, 
+        // and provides a placeholder for your live site.
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config) 
+            : {
                 // ===================================================================================
-                // === FOR YOUR LIVE SITE: PASTE YOUR FIREBASE CONFIGURATION OBJECT HERE ============
+                // === STEP 1: PASTE YOUR FIREBASE CONFIGURATION OBJECT HERE =========================
                 // ===================================================================================
-  const firebaseConfig = {
-    apiKey: "AIzaSyCp_AyRkhGFjNJRXxgBdaggqx5gCejy45k",
+          apiKey: "AIzaSyCp_AyRkhGFjNJRXxgBdaggqx5gCejy45k",
     authDomain: "wanted-poster-fe781.firebaseapp.com",
     projectId: "wanted-poster-fe781",
     storageBucket: "wanted-poster-fe781.firebasestorage.app",
     messagingSenderId: "667245385682",
     appId: "1:667245385682:web:628d40fbfc0d2f90995a0b"
-  };
-        // Use a unique ID for your app's data path.
-        const appId = typeof __app_id !== '1:667245385682:web:628d40fbfc0d2f90995a0b
-' ? __app_id : 'my-global-wanted-poster'; 
+                // ===================================================================================
+            };
 
         // --- Initialize Firebase ---
-         const app = initializeApp(firebaseConfig);
-</script>
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
 
         // --- Collection Reference ---
-        const movesCollectionRef = collection(db, `artifacts/${appId}/public/data/moves`);
+        // FIX: Simplified the database path to make security rules easier and avoid permissions errors.
+        const movesCollectionRef = collection(db, 'moves');
 
         const tableBody = document.getElementById('table-body');
         const addRowBtn = document.getElementById('addRowBtn');
@@ -272,7 +296,6 @@
                 snapshot.forEach(doc => {
                     moves.push({ id: doc.id, ...doc.data() });
                 });
-                // FIX: Replaced modern optional chaining (?.) with a more compatible syntax
                 moves.sort((a, b) => ((a.createdAt && a.createdAt.seconds) || 0) - ((b.createdAt && b.createdAt.seconds) || 0));
                 renderTable(moves);
             }, (error) => {
@@ -324,7 +347,7 @@
                 const newText = event.target.innerText;
 
                 if (docId) {
-                    const docRef = doc(db, `artifacts/${appId}/public/data/moves`, docId);
+                    const docRef = doc(db, 'moves', docId);
                     updateDoc(docRef, { [field]: newText })
                         .catch(error => {
                             console.error("Error updating document:", error);
@@ -343,7 +366,7 @@
                     return;
                 }
                 if (docId) {
-                    const docRef = doc(db, `artifacts/${appId}/public/data/moves`, docId);
+                    const docRef = doc(db, 'moves', docId);
                     deleteDoc(docRef)
                         .catch(error => {
                              console.error("Error deleting document:", error);
